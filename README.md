@@ -69,6 +69,41 @@ Die Zeiträume wechseln um Mitternacht Ortszeit. Die Zeitzone übernimmt das Ger
 Home Assistant (ab Version 2026.3). Bis Home Assistant verbunden ist, oder bei älteren Versionen, gilt `Europe/Berlin`
 (Substitution `timezone`).
 
+### Energie und Kosten (optional)
+
+Das Paket `gas-costs.yaml` ergänzt Energie, Kosten und das Abrechnungsjahr des Gasversorgers. Es kommt neben die
+unveränderte `gas-connect.yaml` in die eigene Konfiguration, z. B. nach der Übernahme im ESPHome Device Builder:
+
+```yaml
+packages:
+  core: !include gas-connect.yaml
+  costs: !include gas-costs.yaml
+```
+
+Einstellungen (in Home Assistant unter **Konfiguration**, die Werte stehen auf der Gasrechnung), in dieser Reihenfolge eintragen:
+
+- **Calorific value** (Brennwert, kWh/m³) und **Z-number** (Zustandszahl): kWh = m³ × Brennwert × Zustandszahl
+- **Energy price** (Arbeitspreis, brutto, ct/kWh) - solange 0, bleiben die Kosten unbekannt
+- **Base price** (Grundpreis, brutto, €/Jahr) und **Monthly installment** (monatlicher Abschlag, €)
+- **Billing year start day** / **Billing year start month** - Beginn des Abrechnungsjahres, z. B. 1 und 10 für den 1. Oktober
+- **Billing year start reading** - Zählerstand zu Beginn des Abrechnungsjahres (von der letzten Rechnung)
+
+Neue Entitäten:
+
+- **Gas energy** (kWh, `total_increasing`) - für das Energie-Dashboard, dazu **Gas energy today**, **yesterday**, **this week**, **this month**, **this year**
+- **Gas power** (kW) sowie **Gas this week**, **Gas last week**, **Gas last month**, **Gas last year**, **Gas billing year** (m³)
+- **Gas cost** (€): today, yesterday, this / last week, this / last month, this / last year und billing year; der Grundpreis ist für jeden begonnenen Tag enthalten
+- **Installments paid** - bisher fällige Abschläge im Abrechnungsjahr
+- **Billing balance** - Abschläge minus Kosten bisher; positiv heißt Guthaben, negativ Nachzahlung
+- **Gas cost forecast this month**, **Gas cost forecast billing year**, **Billing balance forecast** - hochgerechnet mit der
+  üblichen Verteilung über das Jahr (Gradtagzahlen nach VDI 2067, dazu 15 % gleichmäßig für Warmwasser), ein Wintertag zählt also mehr als ein Sommertag
+- **Recalculate costs** - rechnet die laufenden Zeiträume mit den aktuellen Einstellungen neu, z. B. nach einem Tippfehler beim Preis
+
+Jeder Impuls wird mit den Einstellungen umgerechnet, die in dem Moment gelten: Ein neuer Preis gilt wie auf der Gasrechnung
+erst ab dann. Der erste Arbeitspreis gilt auch für den Verbrauch davor. **Reset statistics** setzt auch diese Woche,
+Monat und Jahr auf 0, das Abrechnungsjahr bleibt. Die Rechnung in `gas-costs.h` lässt sich am PC testen:
+`test/run-tests.ps1` (Visual Studio mit C++).
+
 ### MQTT-Version (ohne Home Assistant)
 
 Für openHAB, ioBroker, Node-RED, FHEM und andere Systeme mit MQTT-Broker, installierbar über den
@@ -98,6 +133,7 @@ Firmware per WLAN (ESPHome-OTA, Port 3232) nimmt das Gerät nur mit dem Webseite
 - `gas-connect.yaml` - die Konfiguration, die man bei der Übernahme im ESPHome Device Builder erhält
 - `gas-connect.factory.yaml` - die Werks-Firmware (ergänzt Improv, Projektinfos und OTA-Updates)
 - `gas-connect-mqtt.yaml`, `gas-connect-mqtt.factory.yaml` - dasselbe für die MQTT-Version
+- `gas-costs.yaml`, `gas-costs.h` - optionales Paket für Energie, Kosten und Abrechnungsjahr, Tests in `test/`
 
 ## English
 
@@ -166,6 +202,41 @@ The periods roll over at local midnight. The device takes the timezone from the 
 (Home Assistant 2026.3 and newer). Until Home Assistant is connected, or with older versions, `Europe/Berlin` applies
 (`timezone` substitution).
 
+### Energy and costs (optional)
+
+The package `gas-costs.yaml` adds energy, costs and the billing year of the gas supplier. Include it next to the
+unchanged `gas-connect.yaml` in your own config, e.g. after taking control in the ESPHome Device Builder:
+
+```yaml
+packages:
+  core: !include gas-connect.yaml
+  costs: !include gas-costs.yaml
+```
+
+Settings (in Home Assistant under **Configuration**, the values are on your gas bill), enter them in this order:
+
+- **Calorific value** (kWh/m³) and **Z-number**: kWh = m³ × calorific value × z-number
+- **Energy price** (gross, ct/kWh) - as long as it is 0, the costs stay unknown
+- **Base price** (gross, EUR/year) and **Monthly installment** (EUR)
+- **Billing year start day** / **Billing year start month** - start of the billing year, e.g. 1 and 10 for October 1st
+- **Billing year start reading** - meter reading at the start of the billing year (from the last bill)
+
+New entities:
+
+- **Gas energy** (kWh, `total_increasing`) - for the energy dashboard, plus **Gas energy today**, **yesterday**, **this week**, **this month**, **this year**
+- **Gas power** (kW) and **Gas this week**, **Gas last week**, **Gas last month**, **Gas last year**, **Gas billing year** (m³)
+- **Gas cost** (EUR): today, yesterday, this / last week, this / last month, this / last year and billing year; the base price is included for each day begun
+- **Installments paid** - installments due so far in the billing year
+- **Billing balance** - installments minus costs so far; positive means credit, negative an additional payment
+- **Gas cost forecast this month**, **Gas cost forecast billing year**, **Billing balance forecast** - projected with the
+  usual distribution over the year (degree days per VDI 2067 plus 15 % evenly for hot water), so a winter day counts more than a summer day
+- **Recalculate costs** - recalculates the running periods with the current settings, e.g. after a typo in the price
+
+Each pulse is converted with the settings valid at that moment: like on the gas bill, a new price only applies from then
+on. The first energy price also applies to the consumption before it. **Reset statistics** also resets this week,
+month and year to 0, the billing year stays. The calculations in `gas-costs.h` can be tested on the PC:
+`test/run-tests.ps1` (Visual Studio with C++).
+
 ### MQTT version (without Home Assistant)
 
 For openHAB, ioBroker, Node-RED, FHEM and other systems with an MQTT broker, installable from the
@@ -195,3 +266,4 @@ blinks yellow while there is no connection to the broker. The time comes from SN
 - `gas-connect.yaml` - the configuration you get when taking control in the ESPHome Device Builder
 - `gas-connect.factory.yaml` - the factory firmware (adds Improv, project info and OTA updates)
 - `gas-connect-mqtt.yaml`, `gas-connect-mqtt.factory.yaml` - the same for the MQTT version
+- `gas-costs.yaml`, `gas-costs.h` - optional package for energy, costs and the billing year, tests in `test/`
